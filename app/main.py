@@ -6,6 +6,9 @@ import os
 import random
 import uuid
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,7 +22,7 @@ from .metrics import record_error, snapshot
 from .middleware import CorrelationIdMiddleware
 from .pii import hash_user_id, summarize_text
 from .schemas import ChatRequest, ChatResponse
-from .tracing import tracing_enabled
+from .tracing import flush_langfuse, tracing_enabled
 
 configure_logging()
 log = get_logger()
@@ -110,6 +113,8 @@ async def background_traffic_simulator() -> None:
                     payload={"detail": str(exc)},
                 )
             step += 1
+            if step % 5 == 0:
+                flush_langfuse()
             clear_contextvars()
         except asyncio.CancelledError:
             break
