@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from .agent import LabAgent
+from .dashboard_aggregator import get_dashboard_metrics
 from .incidents import disable, enable, status
 from .logging_config import LOG_PATH, configure_logging, get_logger
 from .metrics import record_error, snapshot
@@ -292,6 +293,19 @@ async def simulate_traffic(attack: bool = False, count: int = 3) -> dict:
             )
 
     return {"ok": True, "attack_mode": attack, "count": count, "incidents": status()}
+
+
+@app.get("/dashboard")
+async def dashboard_page():
+    index_path = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    raise HTTPException(status_code=404, detail="Dashboard UI not found")
+
+
+@app.get("/api/dashboard-data")
+async def dashboard_data():
+    return get_dashboard_metrics()
 
 
 @app.post("/chat", response_model=ChatResponse)
