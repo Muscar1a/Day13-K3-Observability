@@ -79,6 +79,7 @@ class LabAgent:
             tokens_in=response.usage.input_tokens,
             tokens_out=response.usage.output_tokens,
             quality_score=quality_score,
+            model=self.model,
         )
 
         return AgentResult(

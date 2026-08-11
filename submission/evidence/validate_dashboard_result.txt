@@ -1,7 +1,1 @@
 HỢP LỆ: 6/6 panel có trong dashboard contract.
-- latency_p95_ms (Latency P95/P99)
-- traffic_rate_rps (Traffic Volume)
-- error_rate_pct (Error Rate %)
-- total_cost_usd (Cost & Token Usage)
-- quality_score_mean (Model Quality Index)
-- active_incidents (Incident & Alert Status)

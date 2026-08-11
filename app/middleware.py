@@ -20,11 +20,15 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
         request.state.correlation_id = correlation_id
 
         start = time.perf_counter()
-        response = await call_next(request)
-
-        elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
-        response.headers["x-request-id"] = correlation_id
-        response.headers["x-correlation-id"] = correlation_id
-        response.headers["x-response-time-ms"] = str(elapsed_ms)
-
-        return response
+        try:
+            response = await call_next(request)
+            elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
+            response.headers["x-request-id"] = correlation_id
+            response.headers["x-correlation-id"] = correlation_id
+            response.headers["x-response-time-ms"] = str(elapsed_ms)
+            return response
+        except Exception as e:
+            elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
+            import structlog
+            structlog.get_logger().error("request_failed", error=str(e), duration_ms=elapsed_ms)
+            raise
