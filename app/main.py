@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
+import random
+import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from structlog.contextvars import bind_contextvars
+from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from .agent import LabAgent
 from .incidents import disable, enable, status
@@ -31,6 +34,89 @@ app.add_middleware(
 )
 agent = LabAgent()
 
+AVAILABLE_MODELS = [
+    "gpt-4o",
+    "gpt-4o-mini",
+    "claude-3.5",
+    "embedding-3",
+    "vision-1",
+    "voyage-1",
+]
+
+SIMULATOR_MESSAGES = [
+    "What is the refund policy for digital goods?",
+    "Please update my shipping address to 123 Main St.",
+    "How do I reset my password?",
+    "I need a refund for my order #12345.",
+    "Show me system monitoring metrics.",
+    "What is the policy on data retention?",
+]
+
+
+async def background_traffic_simulator() -> None:
+    """Continuously generates realistic background synthetic traffic across all models."""
+    log.info("background_traffic_simulator_started")
+    step = 0
+    while True:
+        try:
+            await asyncio.sleep(random.uniform(0.4, 0.8))
+            clear_contextvars()
+            cid = f"req-{uuid.uuid4().hex[:8]}"
+            model_choice = random.choice(AVAILABLE_MODELS)
+            msg = SIMULATOR_MESSAGES[step % len(SIMULATOR_MESSAGES)]
+            feat = "refund" if "refund" in msg else "general"
+            user_id = f"user_{random.randint(100, 999)}"
+            session_id = f"sess_{random.randint(10, 99)}"
+            user_id_hash = hash_user_id(user_id)
+
+            bind_contextvars(
+                correlation_id=cid,
+                user_id_hash=user_id_hash,
+                session_id=session_id,
+                feature=feat,
+                model=model_choice,
+                env=os.getenv("APP_ENV", "dev"),
+            )
+
+            # Create agent for specific model
+            model_agent = LabAgent(model=model_choice)
+            try:
+                res = await asyncio.to_thread(
+                    model_agent.run,
+                    user_id=user_id,
+                    feature=feat,
+                    session_id=session_id,
+                    message=msg,
+                )
+                log.info(
+                    "response_sent",
+                    service="api",
+                    feature=feat,
+                    model=model_choice,
+                    latency_ms=res.latency_ms,
+                    tokens_in=res.tokens_in,
+                    tokens_out=res.tokens_out,
+                    cost_usd=res.cost_usd,
+                    quality_score=res.quality_score,
+                    payload={"answer_preview": summarize_text(res.answer)},
+                )
+            except Exception as exc:
+                record_error(type(exc).__name__, model=model_choice)
+                log.error(
+                    "request_failed",
+                    service="api",
+                    model=model_choice,
+                    error_type=type(exc).__name__,
+                    payload={"detail": str(exc)},
+                )
+            step += 1
+            clear_contextvars()
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            log.error("background_simulator_error", error=str(e))
+
+
 
 @app.on_event("startup")
 async def startup() -> None:
@@ -40,6 +126,7 @@ async def startup() -> None:
         env=os.getenv("APP_ENV", "dev"),
         payload={"tracing_enabled": tracing_enabled()},
     )
+    asyncio.create_task(background_traffic_simulator())
 
 
 @app.get("/health")
@@ -50,45 +137,22 @@ async def health() -> dict:
 @app.get("/metrics")
 async def metrics() -> dict:
     data = snapshot()
+    models_stats = data.get("model_breakdown", {})
     
-    # Calculate live breakdown from logs
-    models_stats: dict[str, dict] = {
-        "gpt-4o": {"requests": 1240, "latencies": [746, 750, 712, 730], "errors": 2, "cost": 6.21},
-        "gpt-4o-mini": {"requests": 480, "latencies": [812, 850, 800], "errors": 5, "cost": 2.36},
-        "claude-3.5": {"requests": 310, "latencies": [774, 760, 780], "errors": 1, "cost": 4.21},
-        "embedding-3": {"requests": 190, "latencies": [128, 130, 125], "errors": 0, "cost": 1.88},
-        "vision-1": {"requests": 120, "latencies": [1243, 1200], "errors": 1, "cost": 1.54},
-        "voyage-1": {"requests": 80, "latencies": [690, 700], "errors": 1, "cost": 0.92},
-    }
-    
-    if LOG_PATH.exists():
-        with LOG_PATH.open("r", encoding="utf-8") as f:
-            for line in f:
-                try:
-                    rec = json.loads(line.strip())
-                    model_name = rec.get("model", "gpt-4o")
-                    if model_name not in models_stats:
-                        models_stats[model_name] = {"requests": 0, "latencies": [], "errors": 0, "cost": 0.0}
-                    
-                    models_stats[model_name]["requests"] += 1
-                    if "latency_ms" in rec:
-                        models_stats[model_name]["latencies"].append(rec["latency_ms"])
-                    if rec.get("level") == "error":
-                        models_stats[model_name]["errors"] += 1
-                    if "cost_usd" in rec:
-                        models_stats[model_name]["cost"] += rec["cost_usd"]
-                except Exception:
-                    continue
+    total_reqs = data.get("traffic", 0)
+    total_errors = sum(m.get("errors", 0) for m in models_stats.values())
+    error_rate_pct = round((total_errors / max(1, total_reqs)) * 100, 2)
 
     summary = {
-        "total_requests": data.get("traffic", 0) + sum(m["requests"] for m in models_stats.values()),
-        "latency_p95_ms": data.get("latency_p95", 742),
-        "total_cost_usd": round(data.get("total_cost_usd", 0.0) + sum(m["cost"] for m in models_stats.values()), 2),
-        "error_rate_pct": round((sum(m["errors"] for m in models_stats.values()) / max(1, sum(m["requests"] for m in models_stats.values()))) * 100, 2),
+        "total_requests": total_reqs,
+        "latency_p95_ms": data.get("latency_p95", 0),
+        "total_cost_usd": data.get("total_cost_usd", 0.0),
+        "error_rate_pct": error_rate_pct,
         "model_breakdown": models_stats,
-        "raw_snapshot": data
+        "raw_snapshot": data,
     }
     return {"summary": summary, "snapshot": data}
+
 
 
 @app.get("/logs")
@@ -297,3 +361,45 @@ async def disable_incident(name: str) -> JSONResponse:
         return JSONResponse({"ok": True, "incidents": status()})
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+async def _auto_recover(delay_seconds: int = 12) -> None:
+    await asyncio.sleep(delay_seconds)
+    disable("rag_slow")
+    disable("cost_spike")
+    disable("tool_fail")
+    log.info("incident_auto_recovered_to_normal", service="control")
+
+
+@app.post("/incidents/demo_attack")
+async def demo_attack() -> dict:
+    enable("rag_slow")
+    enable("cost_spike")
+    log.warning("demo_attack_triggered", service="control", payload={"incidents": ["rag_slow", "cost_spike"]})
+
+    # Auto recover back to normal after 12 seconds
+    asyncio.create_task(_auto_recover(12))
+
+    # Immediate burst execution for demonstration
+    test_models = ["gpt-4o", "gpt-4o-mini", "claude-3.5"]
+    for i, m in enumerate(test_models):
+        user_id = f"user_attack_{i}"
+        session_id = f"sess_attack_{i}"
+        user_id_hash = hash_user_id(user_id)
+        bind_contextvars(
+            user_id_hash=user_id_hash,
+            session_id=session_id,
+            feature="refund",
+            model=m,
+            env=os.getenv("APP_ENV", "dev"),
+        )
+        try:
+            model_agent = LabAgent(model=m)
+            res = await asyncio.to_thread(model_agent.run, user_id=user_id, feature="refund", session_id=session_id, message="I need a refund for my order #12345.")
+            log.info("response_sent", service="api", feature="refund", model=m, latency_ms=res.latency_ms, cost_usd=res.cost_usd)
+        except Exception as exc:
+            record_error(type(exc).__name__, model=m)
+            log.error("request_failed", service="api", model=m, error_type=type(exc).__name__, payload={"detail": str(exc)})
+
+    return {"ok": True, "message": "Cascading incident (rag_slow + cost_spike) triggered!", "incidents": status()}
+

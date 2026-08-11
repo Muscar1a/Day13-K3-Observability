@@ -44,102 +44,12 @@ interface ModelItem {
 }
 
 const INITIAL_MODELS: ModelItem[] = [
-  {
-    id: '1',
-    name: 'gpt-4o',
-    provider: 'OpenAI',
-    logoText: 'OA',
-    status: 'Strong',
-    requests: '1.2M',
-    requestsRaw: 1200000,
-    successRate: 98.70,
-    p95Latency: 746,
-    errorRate: 0.22,
-    cost: '$6,210',
-    costRaw: 6210,
-    sparkline: [20, 25, 22, 30, 28, 35, 40],
-    color: '#10b981'
-  },
-  {
-    id: '2',
-    name: 'gpt-4o-mini',
-    provider: 'OpenAI',
-    logoText: 'OA',
-    status: 'Degraded',
-    requests: '480K',
-    requestsRaw: 480000,
-    successRate: 91.20,
-    p95Latency: 812,
-    errorRate: 1.05,
-    cost: '$2,360',
-    costRaw: 2360,
-    sparkline: [40, 35, 45, 30, 25, 20, 15],
-    color: '#ef4444'
-  },
-  {
-    id: '3',
-    name: 'claude-3.5',
-    provider: 'Anthropic',
-    logoText: 'AN',
-    status: 'Watch',
-    requests: '310K',
-    requestsRaw: 310000,
-    successRate: 94.70,
-    p95Latency: 774,
-    errorRate: 0.42,
-    cost: '$4,210',
-    costRaw: 4210,
-    sparkline: [25, 28, 26, 32, 30, 29, 31],
-    color: '#f59e0b'
-  },
-  {
-    id: '4',
-    name: 'embedding-3',
-    provider: 'OpenAI',
-    logoText: 'OA',
-    status: 'Strong',
-    requests: '190K',
-    requestsRaw: 190000,
-    successRate: 99.20,
-    p95Latency: 128,
-    errorRate: 0.04,
-    cost: '$1,880',
-    costRaw: 1880,
-    sparkline: [15, 18, 20, 22, 25, 28, 30],
-    color: '#10b981'
-  },
-  {
-    id: '5',
-    name: 'vision-1',
-    provider: 'OpenAI',
-    logoText: 'OA',
-    status: 'Stable',
-    requests: '120K',
-    requestsRaw: 120000,
-    successRate: 97.30,
-    p95Latency: 1243,
-    errorRate: 0.28,
-    cost: '$1,540',
-    costRaw: 1540,
-    sparkline: [30, 32, 31, 33, 35, 34, 36],
-    color: '#3b82f6'
-  },
-  {
-    id: '6',
-    name: 'voyage-1',
-    provider: 'Voyage',
-    logoText: 'VO',
-    status: 'Degraded',
-    requests: '80K',
-    requestsRaw: 80000,
-    successRate: 90.40,
-    p95Latency: 690,
-    errorRate: 0.58,
-    cost: '$920',
-    costRaw: 920,
-    sparkline: [35, 30, 28, 25, 22, 20, 18],
-    color: '#ef4444'
-  }
+  { id: '1', name: 'gpt-4o', provider: 'OpenAI', logoText: 'OA', status: 'Strong', requests: '0', requestsRaw: 0, successRate: 100.0, p95Latency: 0, errorRate: 0.0, cost: '$0.00', costRaw: 0, sparkline: [10, 15, 12, 14, 15], color: '#10b981' },
+  { id: '2', name: 'gpt-4o-mini', provider: 'OpenAI', logoText: 'OA', status: 'Strong', requests: '0', requestsRaw: 0, successRate: 100.0, p95Latency: 0, errorRate: 0.0, cost: '$0.00', costRaw: 0, sparkline: [10, 12, 11, 13, 14], color: '#10b981' },
+  { id: '3', name: 'claude-3.5', provider: 'Anthropic', logoText: 'AN', status: 'Strong', requests: '0', requestsRaw: 0, successRate: 100.0, p95Latency: 0, errorRate: 0.0, cost: '$0.00', costRaw: 0, sparkline: [12, 14, 13, 15, 16], color: '#10b981' },
+  { id: '4', name: 'embedding-3', provider: 'OpenAI', logoText: 'OA', status: 'Strong', requests: '0', requestsRaw: 0, successRate: 100.0, p95Latency: 0, errorRate: 0.0, cost: '$0.00', costRaw: 0, sparkline: [5, 6, 5, 7, 8], color: '#10b981' },
+  { id: '5', name: 'vision-1', provider: 'OpenAI', logoText: 'OA', status: 'Strong', requests: '0', requestsRaw: 0, successRate: 100.0, p95Latency: 0, errorRate: 0.0, cost: '$0.00', costRaw: 0, sparkline: [15, 18, 16, 17, 19], color: '#3b82f6' },
+  { id: '6', name: 'voyage-1', provider: 'Voyage', logoText: 'VO', status: 'Strong', requests: '0', requestsRaw: 0, successRate: 100.0, p95Latency: 0, errorRate: 0.0, cost: '$0.00', costRaw: 0, sparkline: [8, 9, 8, 10, 11], color: '#10b981' }
 ];
 
 export default function App() {
@@ -195,22 +105,51 @@ export default function App() {
             setModels(prev => prev.map(m => {
               const b = s.model_breakdown[m.name];
               if (b) {
-                const reqCount = b.requests + m.requestsRaw;
-                const errRate = b.requests ? (b.errors / b.requests) * 100 : m.errorRate;
-                const avgLat = b.latencies?.length ? Math.round(b.latencies.reduce((a: number, c: number) => a + c, 0) / b.latencies.length) : m.p95Latency;
+                const reqCount = b.requests;
+                const errRate = b.recent_error_rate !== undefined ? b.recent_error_rate : (b.requests ? (b.errors / b.requests) * 100 : 0);
+                const modelP95 = b.latency_p95 !== undefined ? b.latency_p95 : (b.latencies?.length ? Math.max(...b.latencies) : 0);
+                const costVal = b.cost || 0;
+                const formatReqs = reqCount >= 1000000 ? `${(reqCount / 1000000).toFixed(2)}M` : reqCount >= 1000 ? `${(reqCount / 1000).toFixed(1)}K` : `${reqCount}`;
+                
+                let modelStatus: 'Strong' | 'Stable' | 'Watch' | 'Degraded' = 'Strong';
+                let modelColor = '#10b981';
+
+                if (modelP95 > 2000 || errRate >= 5.0) {
+                  modelStatus = 'Degraded';
+                  modelColor = '#ef4444';
+                } else if (modelP95 > 600 || errRate > 0.5) {
+                  modelStatus = 'Watch';
+                  modelColor = '#f59e0b';
+                } else if (modelP95 > 300) {
+                  modelStatus = 'Stable';
+                  modelColor = '#3b82f6';
+                }
+
                 return {
                   ...m,
                   requestsRaw: reqCount,
-                  requests: `${(reqCount / 1000).toFixed(0)}K`,
+                  requests: formatReqs,
+                  successRate: Number(Math.max(0, 100 - errRate).toFixed(2)),
                   errorRate: Number(errRate.toFixed(2)),
-                  p95Latency: avgLat,
-                  status: avgLat > 2000 ? 'Degraded' : errRate > 0.5 ? 'Watch' : 'Strong',
-                  color: avgLat > 2000 ? '#ef4444' : errRate > 0.5 ? '#f59e0b' : '#10b981'
+                  p95Latency: modelP95,
+                  cost: `$${costVal.toFixed(2)}`,
+                  costRaw: costVal,
+                  status: modelStatus,
+                  color: modelColor
                 };
               }
               return m;
             }));
           }
+
+          // Live trend update
+          const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const curP95 = s.latency_p95_ms || 120;
+          const curErr = s.error_rate_pct !== undefined ? s.error_rate_pct : 0.0;
+          setTrendData(prev => {
+            const next = [...prev, { time: nowTime, latencyP95: curP95, errorRate: curErr }];
+            return next.length > 12 ? next.slice(next.length - 12) : next;
+          });
         }
       }
 
@@ -228,17 +167,6 @@ export default function App() {
       if (tRes.ok) {
         const tData = await tRes.json();
         setTraces(tData);
-
-        // Update real-time trend chart from traces
-        if (tData.length > 0) {
-          const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const latestLatency = tData[0]?.latency_ms || 740;
-          const isErr = tData[0]?.has_error ? 2.5 : 0.2;
-          setTrendData(prev => [
-            ...prev.slice(1),
-            { time: nowTime, latencyP95: latestLatency, errorRate: isErr }
-          ]);
-        }
       }
 
       // 4. Fetch Logs
@@ -258,37 +186,23 @@ export default function App() {
     }
   };
 
-  // Auto traffic simulation timer
-  useEffect(() => {
-    let autoInterval: any;
-    if (autoSimulate) {
-      autoInterval = setInterval(async () => {
-        try {
-          await fetch('http://127.0.0.1:8000/simulate?attack=false&count=1', { method: 'POST' });
-          fetchBackendData();
-        } catch {
-          // ignore background sync errors
-        }
-      }, 3500);
-    }
-    return () => clearInterval(autoInterval);
-  }, [autoSimulate]);
-
+  // Auto traffic polling timer
   useEffect(() => {
     fetchBackendData();
-    const interval = setInterval(fetchBackendData, 4000);
+    const interval = setInterval(fetchBackendData, 2000);
     return () => clearInterval(interval);
   }, [filterCorrelationId]);
 
   const handleSimulate = async (attackMode: boolean) => {
     setSimulating(true);
-    setSimulationNotice(attackMode ? '⚡ Simulating real latency attack (rag_slow)...' : '✨ Simulating normal traffic...');
+    setSimulationNotice(attackMode ? '⚡ Triggering cascading incident (rag_slow + cost_spike)...' : '✨ Generating normal traffic...');
     try {
-      const res = await fetch(`http://127.0.0.1:8000/simulate?attack=${attackMode}&count=3`, { method: 'POST' });
+      const endpoint = attackMode ? 'http://127.0.0.1:8000/incidents/demo_attack' : 'http://127.0.0.1:8000/simulate?attack=false&count=3';
+      const res = await fetch(endpoint, { method: 'POST' });
       if (res.ok) {
         await fetchBackendData();
         setSimulationNotice(attackMode 
-          ? '🚨 Attack executed! Check Traces & Logs for latency > 2500ms.' 
+          ? '🚨 Attack executed! Check Traces & Logs for latency > 2500ms and cost spikes.' 
           : '✅ Normal traffic generated.'
         );
       }
@@ -523,12 +437,17 @@ export default function App() {
                 </div>
 
                 <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:shadow-md transition-all">
-                  <span className="text-xs font-semibold text-slate-500">Backend P95 Latency</span>
+                  <span className="text-xs font-semibold text-slate-500">Average P95 Latency</span>
                   <div className="flex items-baseline justify-between mt-2">
                     <span className={`text-3xl font-extrabold tracking-tight ${parseInt(kpiMetrics.avgLatencyP95) > 2000 ? 'text-rose-600 animate-pulse' : 'text-slate-900'}`}>
                       {kpiMetrics.avgLatencyP95}
                     </span>
-                    <div className="w-24 h-6">{renderMiniSparkline([35, 30, 28, 25, 22, 20, 18], '#ef4444')}</div>
+                    <div className="w-24 h-6">
+                      {renderMiniSparkline(
+                        trendData.map(t => t.latencyP95).slice(-7),
+                        parseInt(kpiMetrics.avgLatencyP95) > 2000 ? '#ef4444' : '#10b981'
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-400 mt-2">
                     <span>Threshold: 2000ms</span>
@@ -616,7 +535,7 @@ export default function App() {
                     <div className="flex justify-between items-center mb-4">
                       <div>
                         <h3 className="text-sm font-extrabold text-slate-900">Real-Time Telemetry Trends</h3>
-                        <p className="text-xs text-slate-400">P95 Latency (ms) vs Error Rate (%) over time window</p>
+                        <p className="text-xs text-slate-400">Avg P95 Latency (ms) vs Error Rate (%) over time window</p>
                       </div>
                       <span className="text-xs text-indigo-600 font-bold bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100 flex items-center gap-1">
                         <Activity className="w-3.5 h-3.5 animate-pulse" /> Stream Sync
@@ -629,7 +548,7 @@ export default function App() {
                           <XAxis dataKey="time" stroke="#94a3b8" fontSize={11} />
                           <YAxis stroke="#94a3b8" fontSize={11} />
                           <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', color: '#fff', fontSize: '12px', border: 'none' }} />
-                          <Line type="monotone" dataKey="latencyP95" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 3 }} name="P95 Latency (ms)" />
+                          <Line type="monotone" dataKey="latencyP95" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 3 }} name="Avg P95 (ms)" />
                           <Line type="monotone" dataKey="errorRate" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3 }} name="Error Rate (%)" />
                         </LineChart>
                       </ResponsiveContainer>
