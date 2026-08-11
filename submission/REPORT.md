@@ -32,7 +32,7 @@
 ## 5. Dashboard, SLO và alerts
 
 - Kết quả `validate_dashboard.py`: HỢP LỆ (6/6 panel hợp lệ) - `submission/evidence/validate_dashboard_result.txt`
-- Evidence dashboard: Built with Vite + React + TailwindCSS + Recharts tại `dashboard/src/App.tsx`.
+- Evidence dashboard: `submission/evidence/dashboard_screenshot.png` (Built with Vite + React + TailwindCSS + Recharts tại `dashboard/src/App.tsx`).
 - SLO đã chọn và lý do: Latency P95 < 2000ms, Error Rate < 1%. Đây là hai chỉ số then chốt bảo đảm trải nghiệm người dùng không bị gián đoạn và hệ thống trả lời đủ nhanh.
 - Alert rules và runbook: Cấu hình tại `config/alert_rules.yaml` và quy trình xử lý incident chi tiết tại `docs/alerts.md`.
 
