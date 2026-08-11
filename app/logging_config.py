@@ -23,22 +23,18 @@ class JsonlFileProcessor:
 
 
 
-def scrub_recursive(data: Any) -> Any:
-    if isinstance(data, dict):
-        return {k: scrub_recursive(v) for k, v in data.items()}
-    elif isinstance(data, list):
-        return [scrub_recursive(item) for item in data]
-    elif isinstance(data, str):
-        return scrub_text(data)
-    return data
+def _scrub_value(val: Any) -> Any:
+    if isinstance(val, str):
+        return scrub_text(val)
+    elif isinstance(val, dict):
+        return {k: _scrub_value(v) for k, v in val.items()}
+    elif isinstance(val, list):
+        return [_scrub_value(v) for v in val]
+    return val
 
 
 def scrub_event(_: Any, __: str, event_dict: dict[str, Any]) -> dict[str, Any]:
-    if "payload" in event_dict:
-        event_dict["payload"] = scrub_recursive(event_dict.get("payload"))
-    if "event" in event_dict and isinstance(event_dict["event"], str):
-        event_dict["event"] = scrub_text(event_dict["event"])
-    return event_dict
+    return _scrub_value(event_dict)
 
 
 
