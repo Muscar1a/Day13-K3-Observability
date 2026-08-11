@@ -5,7 +5,7 @@
 - Tên nhóm: Day 13 Single Contributor
 - Repository URL: https://github.com/ShayNeeo/DAY13_2A202601407_PhamQuocThanh
 - Commit SHA cuối: (See git log)
-- Thành viên và vai trò: Phạm Quốc Thành (Fullstack & Observability Engineer)
+- Thành viên và vai trò: Phạm Quốc Thanh (Fullstack & Observability Engineer)
 
 ## 2. Kết quả kỹ thuật
 
@@ -50,5 +50,5 @@
 
 | Thành viên | Phần việc | Commit/PR | Điều đã học |
 |---|---|---|---|
-| Phạm Quốc Thành | Xây dựng hệ thống Logging JSON, Redact PII, Correlation ID Middleware, Dashboard React/Vite, Alert rules, và thực hiện điều tra Challenge | Commit chính | Nắm vững mô hình 3 trụ cột Observability (Metrics - Traces - Logs), cách bảo vệ PII, và quản lý prompt versioning |
+| Phạm Quốc Thanh | Xây dựng hệ thống Logging JSON, Redact PII, Correlation ID Middleware, Dashboard React/Vite, Alert rules, và thực hiện điều tra Challenge | Commit chính | Nắm vững mô hình 3 trụ cột Observability (Metrics - Traces - Logs), cách bảo vệ PII, và quản lý prompt versioning |
 
