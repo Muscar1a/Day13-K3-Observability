@@ -53,10 +53,12 @@ const INITIAL_MODELS: ModelItem[] = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'metrics' | 'traces' | 'logs' | 'incidents'>('metrics');
+  const [activeTab, setActiveTab] = useState<'metrics' | 'traces' | 'logs' | 'incidents' | 'investigation'>('metrics');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProvider] = useState<string>('All');
   const [selectedStatus] = useState<string>('All');
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
+  const [wizardTrace, setWizardTrace] = useState<any | null>(null);
   const [models, setModels] = useState<ModelItem[]>(INITIAL_MODELS);
   const [lastRefreshed, setLastRefreshed] = useState<string>(new Date().toLocaleTimeString());
   const [autoSimulate, setAutoSimulate] = useState<boolean>(true);
@@ -350,6 +352,14 @@ export default function App() {
             >
               <ShieldAlert className="w-3.5 h-3.5 text-rose-500 animate-pulse" /> 4. Attack Demo
             </button>
+            <button
+              onClick={() => setActiveTab('investigation')}
+              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${
+                activeTab === 'investigation' ? 'bg-white text-emerald-700 shadow-xs font-extrabold' : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-bounce" /> 5. Root Cause RCA
+            </button>
           </nav>
         </div>
 
@@ -393,6 +403,9 @@ export default function App() {
           </button>
           <button onClick={() => setActiveTab('incidents')} className={`p-2 rounded-xl transition-all ${activeTab === 'incidents' ? 'text-rose-600 bg-rose-50 border border-rose-100 shadow-2xs' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
             <ShieldAlert className="w-5 h-5" />
+          </button>
+          <button onClick={() => setActiveTab('investigation')} className={`p-2 rounded-xl transition-all ${activeTab === 'investigation' ? 'text-emerald-600 bg-emerald-50 border border-emerald-100 shadow-2xs' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
+            <Sparkles className="w-5 h-5 text-emerald-600" />
           </button>
         </aside>
 
@@ -777,6 +790,218 @@ export default function App() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* TAB 5: INVESTIGATION WIZARD (ROOT CAUSE RCA) */}
+          {activeTab === 'investigation' && (
+            <div>
+              <div className="mb-6">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Root Cause Analysis (RCA) Wizard</h1>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-bounce" /> Guided Investigation
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Follow the operational triage workflow: <strong>Metrics → Traces → Logs → Root Cause</strong>.
+                </p>
+              </div>
+
+              {/* Stepper Navigation */}
+              <div className="flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 mb-6 shadow-xs">
+                <div 
+                  onClick={() => setWizardStep(1)}
+                  className={`flex items-center gap-3 cursor-pointer p-2 rounded-xl transition-all ${wizardStep === 1 ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-slate-50'}`}
+                >
+                  <span className={`w-8 h-8 rounded-full flex items-center justify-center font-extrabold text-xs ${wizardStep === 1 ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700'}`}>1</span>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900">Step 1: Detect Metric Anomaly</div>
+                    <div className="text-[10px] text-slate-500">Isolate slow trace (&gt;2000ms)</div>
+                  </div>
+                </div>
+
+                <ArrowRight className="w-4 h-4 text-slate-300 hidden sm:block" />
+
+                <div 
+                  onClick={() => wizardTrace && setWizardStep(2)}
+                  className={`flex items-center gap-3 p-2 rounded-xl transition-all ${!wizardTrace ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50'} ${wizardStep === 2 ? 'bg-indigo-50 border border-indigo-200' : ''}`}
+                >
+                  <span className={`w-8 h-8 rounded-full flex items-center justify-center font-extrabold text-xs ${wizardStep === 2 ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700'}`}>2</span>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900">Step 2: Inspect Trace Logs</div>
+                    <div className="text-[10px] text-slate-500">Correlate waterfall events</div>
+                  </div>
+                </div>
+
+                <ArrowRight className="w-4 h-4 text-slate-300 hidden sm:block" />
+
+                <div 
+                  onClick={() => wizardTrace && wizardStep === 3 && setWizardStep(3)}
+                  className={`flex items-center gap-3 p-2 rounded-xl transition-all ${wizardStep !== 3 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50'} ${wizardStep === 3 ? 'bg-emerald-50 border border-emerald-200' : ''}`}
+                >
+                  <span className={`w-8 h-8 rounded-full flex items-center justify-center font-extrabold text-xs ${wizardStep === 3 ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>3</span>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900">Step 3: Root Cause Found</div>
+                    <div className="text-[10px] text-slate-500">Pinpoint bottleneck & fix</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* STEP 1: DETECT ANOMALY */}
+              {wizardStep === 1 && (
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900">Step 1: Select an Anomaly Trace to Investigate</h3>
+                      <p className="text-xs text-slate-500">Pick a degraded trace from live telemetry (marked with `rag_slow` or &gt;2000ms latency).</p>
+                    </div>
+                    {traces.filter(t => t.has_slow_rag || t.latency_ms > 2000).length === 0 && (
+                      <button 
+                        onClick={() => handleSimulate(true)} 
+                        className="flex items-center gap-1.5 bg-rose-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs hover:bg-rose-700"
+                      >
+                        <Zap className="w-3.5 h-3.5" /> Inject Incident First
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="overflow-x-auto border border-slate-100 rounded-xl">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-500 font-semibold uppercase text-[10px]">
+                        <tr>
+                          <th className="py-3 px-4">Correlation ID</th>
+                          <th className="py-3 px-4">Timestamp</th>
+                          <th className="py-3 px-4">Latency</th>
+                          <th className="py-3 px-4">Status</th>
+                          <th className="py-3 px-4 text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-mono">
+                        {traces.map((trace, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                            <td className="py-3 px-4 font-bold text-indigo-600">{trace.correlation_id}</td>
+                            <td className="py-3 px-4 text-slate-500">{new Date(trace.timestamp).toLocaleTimeString()}</td>
+                            <td className={`py-3 px-4 font-extrabold ${trace.latency_ms > 2000 ? 'text-rose-600' : 'text-slate-800'}`}>
+                              {trace.latency_ms} ms
+                            </td>
+                            <td className="py-3 px-4 font-sans">
+                              {trace.has_slow_rag || trace.latency_ms > 2000 ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
+                                  <AlertTriangle className="w-3 h-3" /> DEGRADED
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+                                  <CheckCircle className="w-3 h-3" /> HEALTHY
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <button
+                                onClick={() => {
+                                  setWizardTrace(trace);
+                                  setFilterCorrelationId(trace.correlation_id);
+                                  setWizardStep(2);
+                                }}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition-all"
+                              >
+                                Select for RCA →
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2: INSPECT LOGS */}
+              {wizardStep === 2 && wizardTrace && (
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900">Step 2: Correlation Log Deep Dive</h3>
+                      <p className="text-xs text-slate-500">
+                        Inspecting log records for Correlation ID: <code className="text-indigo-600 font-extrabold">{wizardTrace.correlation_id}</code>
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setWizardStep(3)}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-4 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5"
+                    >
+                      Analyze Root Cause <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-950 text-slate-100 rounded-xl p-4 font-mono text-xs space-y-3 mb-4">
+                    {logs.filter(l => l.correlation_id === wizardTrace.correlation_id).length === 0 ? (
+                      <div className="text-slate-400 p-4 text-center">Loading logs for correlation ID...</div>
+                    ) : (
+                      logs.filter(l => l.correlation_id === wizardTrace.correlation_id).map((record, i) => (
+                        <div key={i} className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                          <div className="flex items-center gap-2 text-[10px] text-indigo-400 mb-1">
+                            <span>Event: <strong>{record.event}</strong></span>
+                            {record.latency_ms && <span className="text-amber-400 ml-auto">Duration: {record.latency_ms}ms</span>}
+                          </div>
+                          <pre className="text-[11px] text-slate-300 whitespace-pre-wrap">
+                            {JSON.stringify(record, null, 2)}
+                          </pre>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: ROOT CAUSE FOUND */}
+              {wizardStep === 3 && wizardTrace && (
+                <div className="bg-white rounded-2xl border border-emerald-200 p-6 shadow-md">
+                  <div className="flex items-center gap-3 text-emerald-700 mb-4">
+                    <CheckCircle className="w-8 h-8 text-emerald-600" />
+                    <div>
+                      <h3 className="text-lg font-extrabold text-slate-900">Root Cause Identified Successfully!</h3>
+                      <p className="text-xs text-slate-500">Telemetry pipeline synthesis complete for Correlation ID `{wizardTrace.correlation_id}`.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                      <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Identified Bottleneck</span>
+                      <div className="text-sm font-extrabold text-rose-600 mt-1">RAG Vector Search Latency Spike (`rag_slow`)</div>
+                      <p className="text-xs text-slate-600 mt-2">
+                        The event <code className="bg-slate-200 px-1 py-0.5 rounded text-[11px]">rag_retrieval_done</code> registered a latency of <strong>{wizardTrace.latency_ms}ms</strong>, exceeding the 2000ms SLA threshold.
+                      </p>
+                    </div>
+
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                      <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Recommended Remediation</span>
+                      <div className="text-sm font-extrabold text-emerald-700 mt-1">Disable `rag_slow` Incident Toggle</div>
+                      <p className="text-xs text-slate-600 mt-2">
+                        Turn off artificial incident flag in the <strong>4. Attack Demo</strong> tab or trigger the recovery HTTP POST endpoint.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <button
+                      onClick={() => {
+                        setWizardStep(1);
+                        setWizardTrace(null);
+                      }}
+                      className="text-xs font-bold text-slate-600 hover:text-slate-900"
+                    >
+                      ← Start New Investigation
+                    </button>
+                    <button
+                      onClick={() => handleToggleIncident('rag_slow', false)}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-md transition-all"
+                    >
+                      Resolve Incident & Reset Bottleneck
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
