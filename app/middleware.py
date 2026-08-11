@@ -10,23 +10,27 @@ from structlog.contextvars import bind_contextvars, clear_contextvars
 
 class CorrelationIdMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # TODO: Clear contextvars to avoid leakage between requests
-        # clear_contextvars()
+        clear_contextvars()
 
-        # TODO: Extract x-request-id from headers or generate a new one
-        # Use format: req-<8-char-hex>
-        correlation_id = "MISSING"
+        req_id_header = request.headers.get("x-request-id")
+        if req_id_header:
+            correlation_id = req_id_header
+        else:
+            correlation_id = f"req-{uuid.uuid4().hex[:8]}"
         
-        # TODO: Bind the correlation_id to structlog contextvars
-        # bind_contextvars(correlation_id=correlation_id)
+        bind_contextvars(correlation_id=correlation_id)
         
         request.state.correlation_id = correlation_id
         
         start = time.perf_counter()
-        response = await call_next(request)
-        
-        # TODO: Add the correlation_id and processing time to response headers
-        # response.headers["x-request-id"] = correlation_id
-        # response.headers["x-response-time-ms"] = ...
-        
-        return response
+        try:
+            response = await call_next(request)
+            duration_ms = round((time.perf_counter() - start) * 1000, 2)
+            response.headers["x-request-id"] = correlation_id
+            response.headers["x-response-time-ms"] = str(duration_ms)
+            return response
+        except Exception as e:
+            duration_ms = round((time.perf_counter() - start) * 1000, 2)
+            import structlog
+            structlog.get_logger().error("request_failed", error=str(e), duration_ms=duration_ms)
+            raise
