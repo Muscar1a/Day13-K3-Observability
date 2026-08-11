@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 
 PII_PATTERNS: dict[str, str] = {
@@ -8,8 +9,11 @@ PII_PATTERNS: dict[str, str] = {
     "phone_vn": r"(?<!\d)(?:\+84|0)(?:[ .-]?\d){9}(?!\d)",
     "cccd": r"\b\d{12}\b",
     "credit_card": r"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b",
-    # TODO: Add more patterns (e.g., Passport, Vietnamese address keywords)
+    "passport": r"(?i)\b[A-Z]\d{7,8}\b",
+    "address_vn": r"(?i)\b(?:số|ngõ|ngách|hẻm|đường|phố|phường|xã|quận|huyện|thị xã|tỉnh|thành phố)\s+[A-ZÀ-Ỹ0-9\s,.-]+",
 }
+
+SALT = os.getenv("HASH_SALT", "default-salt").encode("utf-8")
 
 
 def scrub_text(text: str) -> str:
@@ -25,4 +29,4 @@ def summarize_text(text: str, max_len: int = 80) -> str:
 
 
 def hash_user_id(user_id: str) -> str:
-    return hashlib.sha256(user_id.encode("utf-8")).hexdigest()[:12]
+    return hashlib.sha256(user_id.encode("utf-8") + SALT).hexdigest()[:12]

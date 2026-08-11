@@ -27,34 +27,12 @@ class LabAgent:
         self.model = model
         self.llm = FakeLLM(model=model)
 
-    @observe(name="lab-agent", capture_input=False, capture_output=False)
-    def run(self, user_id: str, feature: str, session_id: str, message: str) -> AgentResult:
-        started = time.perf_counter()
-        docs = retrieve(message)
-        langfuse_client = get_langfuse_client()
-        prompt = resolve_prompt(
-            langfuse_client,
-            feature=feature,
-            docs=docs,
-            message=message,
-            enabled=tracing_enabled(),
-        )
+    @observe(as_type="generation")
+    def _generate(self, prompt, message: str, docs: list[str]) -> Any:
         response = self.llm.generate(prompt.text)
-        quality_score = self._heuristic_quality(message, response.text, docs)
-        latency_ms = int((time.perf_counter() - started) * 1000)
-        cost_usd = self._estimate_cost(response.usage.input_tokens, response.usage.output_tokens)
-
-        langfuse_client.update_current_trace(
-            user_id=hash_user_id(user_id),
-            session_id=session_id,
-            tags=["lab", feature, self.model],
-            metadata={
-                "prompt_name": prompt.name,
-                "prompt_label": prompt.label,
-                "prompt_version": prompt.version,
-                "prompt_source": prompt.source,
-            },
-        )
+        langfuse_client = get_langfuse_client()
+        
+        # Safely compute cost for generation if needed, but here we just pass the tokens
         langfuse_client.update_current_generation(
             model=self.model,
             metadata={
@@ -67,12 +45,43 @@ class LabAgent:
                 "prompt_fetch_error": prompt.fetch_error,
             },
             usage_details={
-                "prompt_tokens": response.usage.input_tokens,
-                "completion_tokens": response.usage.output_tokens,
+                "input": response.usage.input_tokens,
+                "output": response.usage.output_tokens,
             },
-            cost_details={"total": cost_usd},
             prompt=prompt.managed_prompt,
         )
+        return response
+
+    @observe()
+    def run(self, user_id: str, feature: str, session_id: str, message: str) -> AgentResult:
+        started = time.perf_counter()
+        docs = retrieve(message)
+        langfuse_client = get_langfuse_client()
+        prompt = resolve_prompt(
+            langfuse_client,
+            feature=feature,
+            docs=docs,
+            message=message,
+            enabled=tracing_enabled(),
+        )
+        
+        langfuse_client.update_current_trace(
+            user_id=hash_user_id(user_id),
+            session_id=session_id,
+            tags=["lab", feature, self.model],
+            metadata={
+                "prompt_name": prompt.name,
+                "prompt_label": prompt.label,
+                "prompt_version": prompt.version,
+                "prompt_source": prompt.source,
+            },
+        )
+
+        response = self._generate(prompt, message, docs)
+        
+        quality_score = self._heuristic_quality(message, response.text, docs)
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        cost_usd = self._estimate_cost(response.usage.input_tokens, response.usage.output_tokens)
 
         metrics.record_request(
             latency_ms=latency_ms,
@@ -80,6 +89,7 @@ class LabAgent:
             tokens_in=response.usage.input_tokens,
             tokens_out=response.usage.output_tokens,
             quality_score=quality_score,
+            model=self.model,
         )
 
         return AgentResult(

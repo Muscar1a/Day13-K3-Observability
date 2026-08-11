@@ -1,19 +1,19 @@
 alerts:
-  - name: high_latency_p95
-    severity: critical
-    condition: "p95_latency > 3000ms for 5m"
-    type: symptom-based
-    owner: platform-team
-    runbook: docs/alerts.md#alert-1
-  - name: elevated_error_rate
-    severity: critical
-    condition: "error_rate > 2.0% for 3m"
-    type: symptom-based
-    owner: backend-team
-    runbook: docs/alerts.md#alert-2
-  - name: unexpected_cost_spike
+  - name: HighLatencyP95
     severity: warning
-    condition: "total_cost > 2.50 USD in 60m"
+    condition: p95(latency_ms) > 3000ms for 5m
     type: symptom-based
-    owner: finops-team
+    owner: SRE / On-call
+    runbook: docs/alerts.md#alert-1
+  - name: HighErrorRate
+    severity: critical
+    condition: error_rate_pct > 2% for 5m
+    type: symptom-based
+    owner: SRE / On-call
+    runbook: docs/alerts.md#alert-2
+  - name: LowQualityScore
+    severity: warning
+    condition: mean(quality_score) < 0.75 for 5m
+    type: symptom-based
+    owner: AI Platform / On-call
     runbook: docs/alerts.md#alert-3
