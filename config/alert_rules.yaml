@@ -1,19 +1,19 @@
 alerts:
-  - name: TODO_alert_1
-    severity: TODO
-    condition: TODO
+  - name: high_latency_p95
+    severity: critical
+    condition: "p95_latency > 3000ms for 5m"
     type: symptom-based
-    owner: TODO
+    owner: platform-team
     runbook: docs/alerts.md#alert-1
-  - name: TODO_alert_2
-    severity: TODO
-    condition: TODO
+  - name: elevated_error_rate
+    severity: critical
+    condition: "error_rate > 2.0% for 3m"
     type: symptom-based
-    owner: TODO
+    owner: backend-team
     runbook: docs/alerts.md#alert-2
-  - name: TODO_alert_3
-    severity: TODO
-    condition: TODO
+  - name: unexpected_cost_spike
+    severity: warning
+    condition: "total_cost > 2.50 USD in 60m"
     type: symptom-based
-    owner: TODO
+    owner: finops-team
     runbook: docs/alerts.md#alert-3
