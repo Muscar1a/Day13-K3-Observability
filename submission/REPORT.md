@@ -1,32 +1,32 @@
-# Báo cáo Day 13 Observability hệ thống AI
+# Báo cáo Day 13 Observability cho hệ thống AI
 
 ## 1. Thông tin nhóm
 
 - **Tên nhóm**: Muscar1a AI Team
 - **Repository URL**: https://github.com/Muscar1a/Day13-K3-Observability
-- **Commit SHA cuối**: `e422220850a63d61c1546b5b0b567bd5ef5cf4e8`
+- **Commit SHA cuối**: `3f6d438`
 - **Thành viên và vai trò** (Nhóm 3 thành viên):
-  1. Thành viên 1 (Bạn) — **Logging & PII**: Xây dựng Middleware, gán Correlation ID, Enrichment logs (`user_id_hash`, `session_id`, `feature`, `model`, `env`) & PII redaction đệ quy.
-  2. Thành viên 2 — **Tracing & Prompt Version**: Kết nối Langfuse Cloud, quản lý Prompt `day13-chat` (v1/v2, label & rollback).
-  3. Thành viên 3 — **Dashboard, SLO, Alerts & Incident Challenge**: Thiết kế Web Analytics Dashboard (6/6 Panel, Real-time SSE), Alert Rules & Điều tra sự cố Challenge.
+  1. **Nguyễn Thành An** — **Logging & PII**: Xây dựng Middleware (`CorrelationIdMiddleware`), gán Correlation ID, Enrichment logs (`user_id_hash`, `session_id`, `feature`, `model`, `env`) & PII Redaction đệ quy.
+  2. **Vũ Quang Nhật** — **Tracing & Prompt Versioning**: Kết nối Langfuse Cloud, quản lý Prompt `day13-chat` (v1/v2, label & rollback).
+  3. **Phạm Quốc Thanh** — **Dashboard, SLO, Alerts & Incident Challenge**: Thiết kế Web Analytics Dashboard (6/6 Panel, Real-time SSE), Alert Rules & Điều tra sự cố Challenge.
 
 ---
 
 ## 2. Kết quả kỹ thuật
 
-- **Điểm `validate_logs.py`**: **100/100** (xem [validate_logs_result.txt](evidence/validate_logs_result.txt) và ảnh [validate_logs_result.png](evidence/validate_logs_result.png))
+- **Điểm `validate_logs.py`**: **100/100** (xem file [validate_logs_result.txt](evidence/validate_logs_result.txt) và ảnh [validate_logs_result.png](evidence/validate_logs_result.png))
 - **Tổng số traces**: **106+ traces** (xem ảnh [trace_list.png](evidence/trace_list.png))
-- **Số PII leak còn lại**: **0** (xem [correlation_and_pii_evidence.jsonl](evidence/correlation_and_pii_evidence.jsonl) và ảnh [pii_redacted.png](evidence/pii_redacted.png))
+- **Số PII leak còn lại**: **0** (xem file [correlation_and_pii_evidence.jsonl](evidence/correlation_and_pii_evidence.jsonl) và ảnh [pii_redacted.png](evidence/pii_redacted.png))
 - **Link/đường dẫn dashboard**: [http://127.0.0.1:8000/dashboard](http://127.0.0.1:8000/dashboard) (xem ảnh [dashboard_ui.png](evidence/dashboard_ui.png), [dashboard_screenshot.png](evidence/dashboard_screenshot.png) và kết quả [validate_dashboard_result.txt](evidence/validate_dashboard_result.txt))
 
 ---
 
 ## 3. Logging và tracing
 
-- **Evidence correlation ID**: [correlation_and_pii_evidence.jsonl](evidence/correlation_and_pii_evidence.jsonl) (Ghi nhận `correlation_id` `req-a1b2c3d4` đồng bộ qua Middleware, Contextvars và Response Headers, xem ảnh [json_log_sample.png](evidence/json_log_sample.png)).
+- **Evidence correlation ID**: [correlation_and_pii_evidence.jsonl](evidence/correlation_and_pii_evidence.jsonl) (Ghi nhận `correlation_id` `req-a1b2c3d4` đồng bộ xuyên suốt Middleware, Contextvars và Response Headers, xem ảnh [json_log_sample.png](evidence/json_log_sample.png)).
 - **Evidence PII redaction**: [pii_redacted.png](evidence/pii_redacted.png) (Khử đệ quy Email, Phone VN, CCCD, Credit Card thành `[REDACTED_*]`).
 - **Evidence trace waterfall**: [trace_waterfall.png](evidence/trace_waterfall.png) (Biểu đồ cây thể hiện Root Trace `lab-agent` đẩy thành công lên Langfuse Cloud).
-- **Giải thích một span đáng chú ý**: Span `mock_rag` phụ trách tìm kiếm văn bản ngữ cảnh trong chu trình RAG. Khi xảy ra sự cố `rag_slow`, thời gian xử lý của span này bị trễ thêm 1.5s (kéo dài tổng latency lên ~2651ms), gây nghẽn toàn bộ request.
+- **Giải thích một span đáng chú ý**: Span `mock_rag` phụ trách tìm kiếm văn bản ngữ cảnh trong chu trình RAG. Khi xảy ra sự cố `rag_slow`, thời gian xử lý của span này bị trễ thêm 1.5s (kéo dài tổng latency từ ~150ms lên ~2651ms), gây nghẽn toàn bộ request.
 
 ---
 
@@ -44,7 +44,7 @@
 
 ## 5. Dashboard, SLO và alerts
 
-- **Kết quả `validate_dashboard.py`**: **`HỢP LỆ: 6/6 panel có trong dashboard contract.`** (xem [validate_dashboard_result.txt](evidence/validate_dashboard_result.txt) và ảnh [validate_dashboard_result.png](evidence/validate_dashboard_result.png)).
+- **Kết quả `validate_dashboard.py`**: **`HỢP LỆ: 6/6 panel có trong dashboard contract.`** (xem file [validate_dashboard_result.txt](evidence/validate_dashboard_result.txt) và ảnh [validate_dashboard_result.png](evidence/validate_dashboard_result.png)).
 - **Evidence dashboard**: Giao diện Web Analytics tại [http://127.0.0.1:8000/dashboard](http://127.0.0.1:8000/dashboard) (xem ảnh [dashboard_ui.png](evidence/dashboard_ui.png) và [dashboard_screenshot.png](evidence/dashboard_screenshot.png)) hiển thị đúng 6 panel với Server-Sent Events (SSE) real-time streaming.
 - **SLO đã chọn và lý do**:
   * **Latency P95 &le; 3000ms**: Đảm bảo thời gian phản hồi chấp nhận được cho người dùng Chat AI.
@@ -70,8 +70,8 @@
 
 ## 7. Đóng góp cá nhân
 
-| Thành viên | Phần việc | Commit/PR | Điều đã học |
+| Thành viên | Vai trò đảm nhận | Commit / PR tương ứng | Điều đã học & Đóng góp |
 |---|---|---|---|
-| Thành viên 1 (Bạn) | Xây dựng Middleware (`CorrelationIdMiddleware`), gán Correlation ID, Enrichment logs (`user_id_hash`, `session_id`, `feature`, `model`, `env`) & PII Redaction. | `e422220850a63d61c1546b5b0b567bd5ef5cf4e8` | Định dạng Structlog JSON, bind contextvars, quản lý correlation ID và khử dữ liệu nhạy cảm đệ quy. |
-| Thành viên 2 | Langfuse Tracing & Prompt Versioning | `e422220850a63d61c1546b5b0b567bd5ef5cf4e8` | Kết nối Langfuse Cloud, quản lý versioning prompt (`production`/`candidate`) và rollback. |
-| Thành viên 3 | Web Dashboard UI, Alert Rules & Điều tra Incident Challenge | `e422220850a63d61c1546b5b0b567bd5ef5cf4e8` | Dựng Dashboard Web 6 panel (Chart.js + SSE), viết Alert Runbooks và điều tra sự cố theo 3 tầng Metrics &rarr; Traces &rarr; Logs. |
+| **Nguyễn Thành An** | **Logging & PII** | Commit `3f6d438`, `ff11a34`, `f75bca` | Định dạng Structlog JSON, xây dựng `CorrelationIdMiddleware`, bind contextvars (`user_id_hash`, `session_id`, `feature`, `model`, `env`) & khử dữ liệu nhạy cảm đệ quy (`[REDACTED_*]`). Đạt score 100/100. |
+| **Vũ Quang Nhật** | **Tracing & Prompt Versioning** | Commit `6706985`, `094a00f`, `0810338` | Kết nối Langfuse Cloud SDK, sửa `@observe` root trace, quản lý vòng đời prompt `day13-chat` (v1/v2, label `production`/`latest`), kiểm thử rollback prompt không gián đoạn dịch vụ. |
+| **Phạm Quốc Thanh** | **Dashboard UI, Alert Rules & Incident Challenge** | Commit `a49648c`, `17e19d4`, `d1280e6`, `14ded1c` | Thiết kế Web Analytics Dashboard 6/6 Panel (Chart.js + SSE Realtime), hoàn thiện 3 Alert Rules (`config/alert_rules.yaml` & `docs/alerts.md`) và điều tra sự cố Challenge theo 3 tầng Metrics &rarr; Traces &rarr; Logs. |
